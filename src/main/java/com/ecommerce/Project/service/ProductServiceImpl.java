@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,5 +65,26 @@ public class ProductServiceImpl implements ProductService{
         productResponse.setContent(productDTOS);
         return productResponse;
 
+    }
+
+    @Override
+    public ProductResponse getProductByKeyword(String keyword) {
+        List<Product>products=productRepository.findByProductNameLikeIgnoreCase("%"+keyword+"%");
+        List<ProductDTO>productDTOS = products.stream()
+                .map(product->modelMapper.map(product,ProductDTO.class))
+                .toList();
+
+        ProductResponse productResponse = new ProductResponse();
+        productResponse.setContent(productDTOS);
+        return productResponse;
+        
+    }
+
+    @Override
+    public ProductDTO updateProductbyId(Long productId, Product product) {
+        Optional<Product> products = productRepository.findById(productId);
+        String updatedProduct = product.getProductName();
+        product.setProductName(+);
+        return null;
     }
 }
