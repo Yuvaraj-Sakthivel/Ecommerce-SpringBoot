@@ -1,11 +1,11 @@
 package com.ecommerce.Project.service;
 
-import com.ecommerce.Project.model.Product;
 import com.ecommerce.Project.payload.ProductDTO;
 import com.ecommerce.Project.payload.ProductResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface ProductService {
-    ProductDTO addProduct(Long categoryId, Product product);
+    ProductDTO addProduct(Long categoryId, ProductDTO product);
 
     ProductResponse getAllProducts();
 
@@ -13,5 +13,9 @@ public interface ProductService {
 
     ProductResponse getProductByKeyword(String keyword);
 
-    ProductDTO updateProductbyId(Long productId, Product product);
+    ProductDTO updateProductById(Long productId, ProductDTO productDTO);
+
+    ProductDTO deleteProduct(Long productId);
+
+    ProductDTO updateImageById(Long productId, MultipartFile image);
 }
