@@ -1,5 +1,6 @@
 package com.ecommerce.Project.service;
 
+import com.ecommerce.Project.exceptions.APIException;
 import com.ecommerce.Project.exceptions.ResourceNotFoundException;
 import com.ecommerce.Project.model.Category;
 import com.ecommerce.Project.model.Product;
@@ -9,10 +10,16 @@ import com.ecommerce.Project.repositories.CategoryRepository;
 import com.ecommerce.Project.repositories.ProductRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ProductServiceImpl implements ProductService{
@@ -26,22 +33,45 @@ public class ProductServiceImpl implements ProductService{
     @Autowired
     ModelMapper modelMapper;
 
+    @Autowired
+    FileService fileService;
+
+    @Value("${project.image}")
+    private String path;
+
     @Override
     public ProductDTO addProduct(Long categoryId,ProductDTO productDTO) {
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(()->new ResourceNotFoundException("Category","categoryId",categoryId));
-        Product product = modelMapper.map(productDTO,Product.class);
-        product.setImage("default.jpg");
-        product.setCategory(category);
-        double specialPrice = product.getPrice() - ((product.getDiscount()* 0.01)* product.getPrice());
-        product.setSpecialPrice(specialPrice);
-        Product savedProduct = productRepository.save(product);
-        return modelMapper.map(savedProduct, ProductDTO.class);
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
+
+        boolean isProductNotPresent = true;
+        List<Product> products = category.getProduct();
+        for (Product value : products) {
+            if (value.getProductName().equals(productDTO.getProductName())) {
+                isProductNotPresent = false;
+                break;
+            }
+        }
+
+        if (isProductNotPresent) {
+            Product product = modelMapper.map(productDTO, Product.class);
+            product.setImage("default.jpg");
+            product.setCategory(category);
+            double specialPrice = product.getPrice() - ((product.getDiscount() * 0.01) * product.getPrice());
+            product.setSpecialPrice(specialPrice);
+            Product savedProduct = productRepository.save(product);
+            return modelMapper.map(savedProduct, ProductDTO.class);
+        }else {
+            throw new APIException("Product already exists");
+        }
     }
 
     @Override
     public ProductResponse getAllProducts() {
         List<Product>products=productRepository.findAll();
+        if(products.isEmpty()){
+            throw new APIException("Products not found");
+        }
         List<ProductDTO>productDTOS = products.stream()
                 .map(product->modelMapper.map(product,ProductDTO.class))
                 .toList();
@@ -105,8 +135,12 @@ public class ProductServiceImpl implements ProductService{
     }
 
     @Override
-    public ProductDTO updateImageById(Long productId, MultipartFile image) {
-        
-        return null;
+    public ProductDTO updateImageById(Long productId, MultipartFile image) throws IOException {
+        Product productFromDb = productRepository.findById(productId)
+                .orElseThrow(()->new ResourceNotFoundException("Product","productId",productId));
+        String fileName = fileService.uploadImage(path, image);
+        productFromDb.setImage(fileName);
+        Product updatedProject = productRepository.save(productFromDb);
+        return modelMapper.map(updatedProject,ProductDTO.class);
     }
 }
